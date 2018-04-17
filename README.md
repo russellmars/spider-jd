@@ -1,9 +1,13 @@
 ### 环境
-+ nodejs v8+
-
++ [nodejs v8+](http://nodejs.cn/download/)
++ [git](https://git-scm.com/downloads)
 
 ### 安装
 ``` bash
+git clone https://github.com/russellmars/spider-jd.git
+
+cd spider-jd
+
 npm install
 # or
 # yarn
