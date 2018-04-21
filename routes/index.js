@@ -7,11 +7,11 @@ const router = new Router({
 })
 
 router.get('/', async (ctx, next) => {
-  const brower = await puppeteer.launch()
-  const page = await brower.newPage()
+  const browser = await puppeteer.launch()
+  const page = await browser.newPage()
   await page.goto(config.url)
 
-  await page.waitFor(2 * 1000)
+  // await page.waitFor(2 * 1000)
 
   const ITEM_SELECTOR = '#J_goodsList li.gl-item'
 
@@ -24,14 +24,21 @@ router.get('/', async (ctx, next) => {
   const ITEM_PRICE_SELECTOR = '.p-price > strong > i'
 
   const products = await page.evaluate(
-    (sInfo, sImg, sLink, sName, sPrice) => {
-      return [].map.call(document.querySelectorAll(sInfo), $productItem => {
-        const imgUrl = $productItem.querySelector(sImg).src || $productItem.querySelector(sImg).dataset.lazyImg
-        const link = $productItem.querySelector(sLink).href
-        const name = $productItem.querySelector(sName).title
-        const price = $productItem.querySelector(sPrice).innerText
+    (sItem, sImg, sLink, sName, sPrice) => {
+      return [].map.call(document.querySelectorAll(sItem), $item => {
+        const imgUrl =
+          $item.querySelector(sImg).src ||
+          $item.querySelector(sImg).dataset.lazyImg
+        const link = $item.querySelector(sLink).href
+        const name = $item.querySelector(sName).title
+        const price = $item.querySelector(sPrice).innerText
+        const sku = $item.dataset.sku
         return {
-          imgUrl, link, price, name
+          sku,
+          imgUrl,
+          link,
+          price,
+          name
         }
       })
     },
