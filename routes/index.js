@@ -1,13 +1,17 @@
 const Router = require('koa-router')
-const puppeteer = require('puppeteer')
 const config = require('../config')
+const getBrowser = require('../util/browser')
+const axios = require('axios')
+const request = require('request')
+const Iconv = require('iconv-lite')
+const nodejieba = require("nodejieba")
 
 const router = new Router({
   prefix: '/api/v1'
 })
 
 router.get('/', async (ctx, next) => {
-  const browser = await puppeteer.launch()
+  const browser = await getBrowser()
   const page = await browser.newPage()
   await page.goto(config.url)
 
@@ -48,8 +52,73 @@ router.get('/', async (ctx, next) => {
     ITEM_NAME_SELECTOR,
     ITEM_PRICE_SELECTOR
   )
+  page.close()
 
-  ctx.body = { products }
+  let result = {
+    success: false,
+    list: []
+  }
+  if (products) {
+    result = {
+      success: true,
+      list: products
+    }
+  }
+  ctx.body = result
 })
 
+const getCommentUrl = function(sku, page, pageSize = 10) {
+  return `https://sclub.jd.com/comment/productPageComments.action?productId=${sku}&score=0&sortType=6&page=${page}&pageSize=${pageSize}&isShadowSku=0&rid=0&fold=1`
+}
+router.get('/:sku', async (ctx, next) => {
+  const sku = ctx.params.sku
+  const ITEM_URL = `https://item.jd.com/${sku}.html`
+  const commentUrl = getCommentUrl(sku, 0)
+
+  request({ url: getCommentUrl(sku, 0), gzip: true, encoding: null }, function(
+    err,
+    response,
+    body
+  ) {
+    console.log('request body type === ', typeof body)
+    // console.log('request body content === ', body)
+    console.log(Iconv.decode(body, 'gb2312').toString())
+  })
+
+  const fetchComments = function(page) {
+    const url = getCommentUrl(sku, page)
+    return axios.get(url, {
+      responseType: 'arraybuffer'
+    })
+  }
+
+  let comments = []
+  await axios
+    .all(Array.from({ length: 10 }).map((p, i) => fetchComments(i)))
+    .then(
+      axios.spread(function(...results) {
+        comments = results.reduce(function(prev, curr, index) {
+          const body = JSON.parse(Iconv.decode(curr.data, 'gb2312'))
+          console.log('body type === ', typeof body)
+          if (typeof body === 'object') {
+            return prev.concat(body.comments)
+          }
+          return prev
+        }, [])
+      })
+    )
+
+  let allCommentInOneString = comments
+    .map(comment => {
+      return comment.content
+    })
+    .join('    ')
+
+  nodejieba.cutHMM("升职加薪，当上CEO，走上人生巅峰。")
+
+  ctx.body = {
+    success: true,
+    data: nodejieba.cutHMM(allCommentInOneString).join(' ')
+  }
+})
 module.exports = router

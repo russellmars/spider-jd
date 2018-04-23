@@ -1,12 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Document</title>
+  <title>网络爬虫</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+  <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+  <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css" />
 </head>
+
 <body>
-  hello koa
+  <div id="app">
+    <div class="container">
+      <b-card-group columns>
+        <b-card
+          v-for="item in list"
+          @click="openModalProduct(item)"
+          :key="item.sku"
+          :title="item.price"
+          :img-src="item.imgUrl"
+          :img-alt="item.name"
+          img-top>
+          <p class="card-text">{{item.name}}</p>
+        </b-card>
+      </b-card-group>
+    </div>
+    <b-modal id="modalProduct" ref="modalProduct" title="Bootstrap-Vue">
+      <div v-if="product">
+        {{ product }}
+      </div>
+    </b-modal>
+  </div>
+
+  <script src="//unpkg.com/vue/dist/vue.js"></script>
+  <script src="//unpkg.com/babel-polyfill@latest/dist/polyfill.min.js"></script>
+  <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
+  <script src="//unpkg.com/axios/dist/axios.min.js"></script>
+  <script>
+    var api = axios.create({
+      baseURL: '/api/v1',
+      timeout: 10000
+    });
+    new Vue({
+      el: '#app',
+      data() {
+        return {
+          list: [],
+          product: null
+        }
+      },
+      methods: {
+        fetchList() {
+          api.get('/').then(function (response) {
+            var result = response.data
+            if (result.success) {
+              this.list = result.list
+            }
+          }.bind(this))
+        },
+        fetchProduct(item) {
+          api.get('/' + item.sku).then(function (response) {
+            var result = response.data
+            if (result.success) {
+              this.product = result.data
+            }
+          }.bind(this))
+        },
+        openModalProduct (item) {
+          this.$refs.modalProduct.show()
+          this.fetchProduct(item)
+        }
+      },
+      mounted() {
+        this.fetchList()
+      }
+    })
+  </script>
 </body>
+
 </html>
