@@ -12,25 +12,18 @@
 </head>
 
 <body>
-  <div id="app">
+  <div id="app" style="display: none">
     <div class="container">
       <b-card-group columns>
-        <b-card
-          v-for="item in list"
-          @click="openModalProduct(item)"
-          :key="item.sku"
-          :title="item.price"
-          :img-src="item.imgUrl"
-          :img-alt="item.name"
+        <b-card v-for="item in list" @click="openModalProduct(item)" :key="item.sku" :title="item.price" :img-src="item.imgUrl" :img-alt="item.name"
           img-top>
           <p class="card-text">{{item.name}}</p>
         </b-card>
       </b-card-group>
     </div>
-    <b-modal id="modalProduct" ref="modalProduct" title="Bootstrap-Vue">
-      <div v-if="product">
-        {{ product }}
-      </div>
+    <b-modal id="modalProduct" ref="modalProduct" title="商品评论云图">
+      {{(!hasData && !loading) ? '暂无数据' : ''}}
+      <div style="margin: 0 auto;height: 300px; width: 400px" id="shapeMountNode" ref="shapeMountNode"></div>
     </b-modal>
   </div>
 
@@ -38,20 +31,106 @@
   <script src="//unpkg.com/babel-polyfill@latest/dist/polyfill.min.js"></script>
   <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
   <script src="//unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="//gw.alipayobjects.com/os/antv/assets/g2/3.0.8/g2.min.js"></script>
+  <script src="//gw.alipayobjects.com/os/antv/assets/data-set/0.8.7/data-set.min.js"></script>
+  <script src="//gw.alipayobjects.com/os/antv/assets/lib/jquery-3.2.1.min.js"></script>
+  <script src="//gw.alipayobjects.com/os/antv/assets/lib/lodash-4.17.4.min.js"></script>
   <script>
+    var shapeSize = {
+      width: 400,
+      height: 300
+    }
     var api = axios.create({
       baseURL: '/api/v1',
       timeout: 10000
     });
+
+    function getTextAttrs(cfg) {
+      return _.assign({}, {
+        fillOpacity: cfg.opacity,
+        fontSize: cfg.origin._origin.size,
+        rotate: cfg.origin._origin.rotate,
+        text: cfg.origin._origin.text,
+        textAlign: 'center',
+        fontFamily: cfg.origin._origin.font,
+        fill: cfg.color,
+        textBaseline: 'Alphabetic'
+      }, cfg.style);
+    }
+
+    // 给point注册一个词云的shape
+    G2.Shape.registerShape('point', 'cloud', {
+      drawShape(cfg, container) {
+        const attrs = getTextAttrs(cfg);
+        return container.addShape('text', {
+          attrs: _.assign(attrs, {
+            x: cfg.x,
+            y: cfg.y
+          })
+        });
+      }
+    });
+
     new Vue({
       el: '#app',
       data() {
         return {
           list: [],
-          product: null
+          product: null,
+          loading: false,
+          hasData: true
         }
       },
       methods: {
+        drawCloudWord(data) {
+          const dv = new DataSet.View().source(data);
+          const range = dv.range('weight');
+          const min = range[0];
+          const max = range[1];
+          dv.transform({
+            type: 'tag-cloud',
+            fields: ['word', 'weight'],
+            size: [shapeSize.width, shapeSize.height],
+            font: 'Verdana',
+            padding: 0,
+            timeInterval: 5000, // max execute time
+            rotate() {
+              let random = ~~(Math.random() * 4) % 4;
+              if (random == 2) {
+                random = 0;
+              }
+              return random * 90; // 0, 90, 270
+            },
+            fontSize(d) {
+              if (d.value) {
+                return ((d.value - min) / (max - min)) * (80 - 24) + 24;
+              }
+              return 0;
+            }
+          });
+          const chart = new G2.Chart({
+            container: 'shapeMountNode',
+            width: shapeSize.width,
+            height: shapeSize.height,
+            padding: 0,
+          });
+          chart.source(dv, {
+            x: { nice: false },
+            y: { nice: false }
+          });
+          chart.legend(false);
+          chart.axis(false);
+          chart.tooltip({
+            showTitle: false
+          });
+          chart.coord().reflect();
+          chart.point()
+            .position('x*y')
+            .color('word', ['#67b7dc', '#84b761', '#fdd400', '#cc4748', '#cd82ad', '#2f4074', '#448e4d', '#b7b83f', '#b9783f'])
+            .shape('cloud')
+            .tooltip('value');
+          chart.render();
+        },
         fetchList() {
           api.get('/').then(function (response) {
             var result = response.data
@@ -61,20 +140,32 @@
           }.bind(this))
         },
         fetchProduct(item) {
+          this.loading = false
+          this.hasData = true
           api.get('/' + item.sku).then(function (response) {
             var result = response.data
+            this.loading = false
             if (result.success) {
-              this.product = result.data
+              if (result.data && result.data.length > 0) {
+                this.hasData = true
+              } else {
+                this.hasData = false
+              }
+              this.drawCloudWord(result.data)
+            } else {
+              this.hasData = false
             }
           }.bind(this))
         },
-        openModalProduct (item) {
+        openModalProduct(item) {
           this.$refs.modalProduct.show()
+          this.$refs.shapeMountNode.innerHTML = ''
           this.fetchProduct(item)
         }
       },
       mounted() {
         this.fetchList()
+        $('#app').css('display', 'block')
       }
     })
   </script>

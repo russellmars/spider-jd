@@ -75,16 +75,6 @@ router.get('/:sku', async (ctx, next) => {
   const ITEM_URL = `https://item.jd.com/${sku}.html`
   const commentUrl = getCommentUrl(sku, 0)
 
-  request({ url: getCommentUrl(sku, 0), gzip: true, encoding: null }, function(
-    err,
-    response,
-    body
-  ) {
-    console.log('request body type === ', typeof body)
-    // console.log('request body content === ', body)
-    console.log(Iconv.decode(body, 'gb2312').toString())
-  })
-
   const fetchComments = function(page) {
     const url = getCommentUrl(sku, page)
     return axios.get(url, {
@@ -112,13 +102,11 @@ router.get('/:sku', async (ctx, next) => {
     .map(comment => {
       return comment.content
     })
-    .join('    ')
-
-  nodejieba.cutHMM("升职加薪，当上CEO，走上人生巅峰。")
+    .join(' ')
 
   ctx.body = {
     success: true,
-    data: nodejieba.cutHMM(allCommentInOneString).join(' ')
+    data: nodejieba.extract(allCommentInOneString, 100)
   }
 })
 module.exports = router
