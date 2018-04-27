@@ -15,13 +15,16 @@
   <div id="app" style="display: none">
     <div class="container">
       <b-card-group columns>
-        <b-card v-for="item in list" @click="openModalProduct(item)" :key="item.sku" :title="item.price" :img-src="item.imgUrl" :img-alt="item.name"
+        <b-card v-for="item in list" :key="item.sku" :title="item.price" :img-src="item.imgUrl" :img-alt="item.name"
           img-top>
           <p class="card-text">{{item.name}}</p>
+          <b-button @click="openModalProduct(item)" variant="primary">查看评论云图</b-button>
+          <b-button v-if="!item.subscribe" @click="subscribe(item)" variant="success">订阅</b-button>
+          <b-button v-else @click="unsubscribe(item)" variant="outline-secondary">取消订阅</b-button>
         </b-card>
       </b-card-group>
     </div>
-    <b-modal id="modalProduct" ref="modalProduct" title="商品评论云图">
+    <b-modal id="modalProduct" ref="modalProduct" title="商品评论云图" ok-title="确定" cancel-title="取消">
       {{(!hasData && !loading) ? '暂无数据' : ''}}
       <div style="margin: 0 auto;height: 300px; width: 400px" id="shapeMountNode" ref="shapeMountNode"></div>
     </b-modal>
@@ -142,7 +145,7 @@
         fetchProduct(item) {
           this.loading = false
           this.hasData = true
-          api.get('/' + item.sku).then(function (response) {
+          api.get('/items/' + item.sku).then(function (response) {
             var result = response.data
             this.loading = false
             if (result.success) {
@@ -161,6 +164,30 @@
           this.$refs.modalProduct.show()
           this.$refs.shapeMountNode.innerHTML = ''
           this.fetchProduct(item)
+        },
+        subscribe (item) {
+          api.get('/subscribe', {
+            params: {
+              sku: item.sku
+            }
+          }).then(function (response) {
+            var result = response.data
+            if (result.success) {
+              item.subscribe = true
+            }
+          }.bind(this))
+        },
+        unsubscribe (item) {
+          api.get('/unsubscribe', {
+            params: {
+              sku: item.sku
+            }
+          }).then(function(response) {
+            var result = response.data
+            if (result.success) {
+              item.subscribe = false
+            }
+          }.bind(this))
         }
       },
       mounted() {

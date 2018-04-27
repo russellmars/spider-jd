@@ -5,6 +5,8 @@ const axios = require('axios')
 const request = require('request')
 const Iconv = require('iconv-lite')
 const nodejieba = require("nodejieba")
+const Promise = require('bluebird')
+const fs = Promise.promisifyAll(require('fs'))
 
 const router = new Router({
   prefix: '/api/v1'
@@ -59,9 +61,16 @@ router.get('/', async (ctx, next) => {
     list: []
   }
   if (products) {
+    const subscribeFile = await fs.readFileAsync('subscribe.json')
+    const subscribe = JSON.parse(subscribeFile.toString())
+    const items = subscribe.items
+
     result = {
       success: true,
-      list: products
+      list: products.map(item => {
+        item.subscribe = items.indexOf(item.sku) > -1
+        return item
+      })
     }
   }
   ctx.body = result
@@ -70,7 +79,7 @@ router.get('/', async (ctx, next) => {
 const getCommentUrl = function(sku, page, pageSize = 10) {
   return `https://sclub.jd.com/comment/productPageComments.action?productId=${sku}&score=0&sortType=6&page=${page}&pageSize=${pageSize}&isShadowSku=0&rid=0&fold=1`
 }
-router.get('/:sku', async (ctx, next) => {
+router.get('/items/:sku', async (ctx, next) => {
   const sku = ctx.params.sku
   const ITEM_URL = `https://item.jd.com/${sku}.html`
   const commentUrl = getCommentUrl(sku, 0)
@@ -89,7 +98,6 @@ router.get('/:sku', async (ctx, next) => {
       axios.spread(function(...results) {
         comments = results.reduce(function(prev, curr, index) {
           const body = JSON.parse(Iconv.decode(curr.data, 'gb2312'))
-          console.log('body type === ', typeof body)
           if (typeof body === 'object') {
             return prev.concat(body.comments)
           }
@@ -107,6 +115,35 @@ router.get('/:sku', async (ctx, next) => {
   ctx.body = {
     success: true,
     data: nodejieba.extract(allCommentInOneString, 100)
+  }
+})
+
+router.get('/subscribe', async (ctx, next) => {
+  const sku = ctx.query.sku
+  const subscribeFile = await fs.readFileAsync('subscribe.json')
+  const subscribe = JSON.parse(subscribeFile.toString())
+  const items = subscribe.items
+  if (items.indexOf(sku) === -1) {
+    items.push(sku)
+  }
+  await fs.writeFileAsync('subscribe.json', JSON.stringify(subscribe))
+  ctx.body = {
+    success: true
+  }
+})
+
+router.get('/unsubscribe', async (ctx, next) => {
+  const sku = ctx.query.sku
+  const subscribeFile = await fs.readFileAsync('subscribe.json')
+  const subscribe = JSON.parse(subscribeFile.toString())
+  const items = subscribe.items
+  const index = items.indexOf(sku)
+  if (index > -1) {
+    items.splice(index, 1)
+  }
+  await fs.writeFileAsync('subscribe.json', JSON.stringify(subscribe))
+  ctx.body = {
+    success: true
   }
 })
 module.exports = router

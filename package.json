@@ -4,7 +4,7 @@
   "description": "京网络爬虫 ",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "nodemon index.js --config nodemon.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -14,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.18.0",
+    "bluebird": "^3.5.1",
     "d3-cloud": "^1.2.5",
     "iconv-lite": "^0.4.21",
     "koa": "^2.5.0",
