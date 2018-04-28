@@ -31,7 +31,7 @@ router.get('/', async (ctx, next) => {
 
   const products = await page.evaluate(
     (sItem, sImg, sLink, sName, sPrice) => {
-      return [].map.call(document.querySelectorAll(sItem), $item => {
+      return [].map.call(document.querySelectorAll(sItem), ($item, index) => {
         const imgUrl =
           $item.querySelector(sImg).src ||
           $item.querySelector(sImg).dataset.lazyImg
@@ -44,7 +44,8 @@ router.get('/', async (ctx, next) => {
           imgUrl,
           link,
           price,
-          name
+          name,
+          index
         }
       })
     },
