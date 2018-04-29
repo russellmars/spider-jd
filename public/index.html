@@ -10,6 +10,21 @@
   <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
   <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css" />
   <style>
+
+    .list-complete-item {
+      transition: all 1s;
+      /* display: inline-block;
+      margin-right: 10px; */
+    }
+    .list-complete-enter, .list-complete-leave-to
+    /* .list-complete-leave-active for below version 2.1.8 */ {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    .list-complete-leave-active {
+      position: absolute;
+    }
+
     .product-item {
       display: -webkit-box;
       display: -webkit-flex;
@@ -32,8 +47,8 @@
 <body>
   <div id="app" style="display: none">
     <div class="container">
-      <div class="row">
-        <div class="col-xl-4 col-12 col-sm-6 product-item" v-for="item in list" :key="item.sku">
+      <transition-group class="row" name="list-complete" tag="div">
+        <div class="list-complete-item col-xl-4 col-12 col-sm-6 product-item" v-for="item in list" :key="item.sku">
           <b-card class="product-content" :title="item.price" :img-src="item.imgUrl" :img-alt="item.name" img-top>
             <p class="card-text">{{item.name}}</p>
             <b-button class="action" @click="openModalProduct(item)" variant="primary">评论云图</b-button>
@@ -42,7 +57,7 @@
             <b-button class="action" target="blank" :href="item.link" variant="outline-success">商品详情</b-button>
           </b-card>
         </div>
-      </div>
+      </transition-group>
     </div>
     <b-modal id="modalProduct" ref="modalProduct" title="商品评论云图" ok-title="确定" cancel-title="取消">
       {{(!hasData && !loading) ? '暂无数据' : ''}}
@@ -50,7 +65,7 @@
     </b-modal>
     <div v-if="list.length" style="position: fixed; bottom: 20px; right: 20px;">
       <b-button-group vertical>
-        <b-button v-for="sort in sorts" :variant="sort.code === currentSort ? 'success' : ''" @click="sortItems(sort)">{{sort.title}}</b-button>
+        <b-button v-for="sort in sorts" :key="sort.code" :variant="sort.code === currentSort ? 'success' : ''" @click="sortItems(sort)">{{sort.title}}</b-button>
       </b-button-group>
     </div>
   </div>
