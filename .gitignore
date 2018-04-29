@@ -5,4 +5,3 @@ package-lock.json
 # logs
 npm*.log
 yarn*.log
-mail.config.json
