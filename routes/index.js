@@ -4,9 +4,11 @@ const getBrowser = require('../util/browser')
 const axios = require('axios')
 const request = require('request')
 const Iconv = require('iconv-lite')
-const nodejieba = require("nodejieba")
+const nodejieba = require('nodejieba')
 const Promise = require('bluebird')
 const fs = Promise.promisifyAll(require('fs'))
+const mail = require('../util/mail')
+const mailConfig = require('../mail.config.json')
 
 const router = new Router({
   prefix: '/api/v1'
@@ -120,7 +122,7 @@ router.get('/items/:sku', async (ctx, next) => {
 })
 
 router.get('/subscribe', async (ctx, next) => {
-  const sku = ctx.query.sku
+  const { sku, name, price, link, imgUrl } = ctx.query
   const subscribeFile = await fs.readFileAsync('subscribe.json')
   const subscribe = JSON.parse(subscribeFile.toString())
   const items = subscribe.items
@@ -128,6 +130,19 @@ router.get('/subscribe', async (ctx, next) => {
     items.push(sku)
   }
   await fs.writeFileAsync('subscribe.json', JSON.stringify(subscribe))
+  await mail.sendmail(
+    {
+      imgUrl,
+      name,
+      link,
+      price,
+      templateName: 'subscribe'
+    },
+    {
+      to: mailConfig.receiver,
+      subject: '商品订阅通知'
+    }
+  )
   ctx.body = {
     success: true
   }

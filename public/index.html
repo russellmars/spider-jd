@@ -203,7 +203,11 @@
         subscribe(item) {
           api.get('/subscribe', {
             params: {
-              sku: item.sku
+              sku: item.sku,
+              link: item.link,
+              imgUrl: item.imgUrl,
+              name: item.name,
+              price: item.price
             }
           }).then(function (response) {
             var result = response.data
